@@ -1,0 +1,5 @@
+example3.jpg tégllalap sarkai:
+ - 1. sarok:  456   72
+ - 2. sarok: 2783  142
+ - 3. sarok: 2657 1777
+ - 4. sarok:  777 1436

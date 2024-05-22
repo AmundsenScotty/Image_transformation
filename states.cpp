@@ -2,22 +2,17 @@
 
 #include "image.h"
 #include "states.h"
+#include "point.h"
+
+#define MEMTRACE
+#include "memtrace.h"
 
 //// State class
-
-	enum States State::currentState = Start_state;
 
 	Image* State::base = nullptr;
 	Image* State::in_progress = nullptr;
 
-	State::~State()
-	{
-	}
-
-	void State::restart() const
-	{
-		currentState = Start_state;
-	}
+	State::~State() {}
 
 	Image* State::getBase()
 	{
@@ -36,17 +31,8 @@
 
 	void State::setInProgress(Image* ip)
 	{
+		delete in_progress;
 		in_progress = ip;
-	}
-
-	unsigned State::getState()
-	{
-		return currentState;
-	}
-
-	void State::setState(enum States s)
-	{
-		currentState = s;
 	}
 
 ////
@@ -70,7 +56,7 @@
 		std::cout << "Kérem válasszon az alábbi opciók közül az opció számának megadásával!" << std::endl;
 		std::cout << "1. Kép beolvasása" << std::endl;
 		std::cout << "2. Pelda képek" << std::endl;
-		std::cout << "Sorszám: " << std::endl;
+		std::cout << "Sorszám: ";
 	
 		std::cin >> choice;
 
@@ -78,21 +64,15 @@
 			throw std::exception("Helytelen szám!");
 	}
 
-	void Start::restart() const
-	{
-		choice = 0;
-		setState(Start_state);
-	}
-
-	void Start::next_state() const
+	State* Start::next_state() const
 	{
 		switch (choice)
 		{
 		case 1:
-			State::setState(Read_file_state);
+			return new Read_file;
 			break;
 		case 2:
-			State::setState(Example_state);
+			return new Example;
 			break;
 		}
 	}
@@ -111,30 +91,16 @@
 		std::string fileName;
 
 		std::cin >> fileName;
-
-		try
-		{
-			Image::check_file_name(fileName);
-		}
-		catch (std::exception const& err)
-		{
-			std::cout << "Hiba: " << err.what() << std::endl;
-			std::cout << "Kérem próbálja újra!" << std::endl;
-		}
+		
+		Image::check_file_name(fileName);
 
 		State::setBase(new Image(fileName));
-
-		State::getBase()->print_parameters();
+		State::setInProgress(new Image(fileName));
 	}
 
-	void Read_file::restart() const
+	State* Read_file::next_state() const
 	{
-		setState(Read_file_state);
-	}
-
-	void Read_file::next_state() const
-	{
-		setState(Select_corners_state);
+		return new Select_corners;
 	}
 
 ////
@@ -203,14 +169,9 @@
 		}
 	}
 
-	void Example::restart() const
+	State* Example::next_state() const
 	{
-		setState(Example_state);
-	}
-
-	void Example::next_state() const
-	{
-		setState(Transform_state);
+		return new Transform;
 	}
 
 ////
@@ -221,31 +182,77 @@
 	void Select_corners::run() const
 	{
 
-		system("cls");
-
-		std::cout << "Adja meg a transzformálni kívát téglalap sarkait, a koordinátákat szóközzel elválasztva!" << std::endl << std::endl;
-
-		Point corners[4];
-
 		for (int i = 0; i < 4; i++)
 		{
-			std::cout << i + 1 << ".sarok: ";
+			system("cls");
+
+			State::getBase()->print_parameters();
+
+			std::cout << "Adja meg a transzformálni kívát téglalap sarkait, a koordinátákat szóközzel elválasztva!" << std::endl << std::endl;
+
+			std::cout << "Eddig beállított értékek: " << std::endl;
+			for (int i = 0; i < 4; i++)
+				std::cout << i + 1 << ". sarok: (" << State::getInProgress()->get_corners()[i].x << ", "
+				<< State::getInProgress()->get_corners()[i].y << ")" << std::endl;
+			std::cout << std::endl;
+
+			std::cout << i + 1 << ".sarok beállítása: ";
 			try {
-				std::cin >> corners[i];
+				Point current_corner;
 
-				State::getBase()->in_frame(corners[i]);
+				std::cin >> current_corner;
 
-				std::cout << "x: " << corners[i].x << " y: " << corners[i].y << std::endl;
+				State::getBase()->in_frame(current_corner);
+
+				std::cout << "x: " << current_corner.x << " y: " << current_corner.y << std::endl;
+
+				State::getInProgress()->set_corner(i, current_corner);
+
 			}
 			catch (std::exception const& err)
 			{
-				std::cout << "Hiba: " << err.what() << std::endl;
-				std::cout << "Kérem próbálja újra!" << std::endl;
 				i--;
+				std::cout << "Hiba: " << err.what() << std::endl;
+				std::cout << "Kérem próbálja újra!" << std::endl << std::endl;
+				prompt_next();
 			}
 		}
 
-		/// Checkup
+		/// Feedback
+
+			system("cls");
+
+			std::cout << "A beállított értékek: " << std::endl;
+			for (int i = 0; i < 4; i++)
+				std::cout << i + 1 << ". sarok: (" << State::getInProgress()->get_corners()[i].x << ", "
+				<< State::getInProgress()->get_corners()[i].y << ")" << std::endl;
+			std::cout << std::endl;
+
+			std::cout << "Kér segédfunkciót?" << std::endl;
+			std::cout << "1. Nem" << std::endl;
+			std::cout << "2. Sarkok kirajzolása" << std::endl;
+			std::cout << "3. Négyszög kirajzolása" << std::endl;
+
+			unsigned choice_num = 0;
+
+			std::cin >> choice_num;
+
+			switch (choice_num)
+			{
+				case 1:
+					break;
+				case 2:
+					State::setInProgress(State::getInProgress()->draw_corners(State::getInProgress()->get_corners()));
+					State::getInProgress()->write_image_to_file();
+					State::getInProgress()->open_image_window();
+					break;
+
+				case 3:
+					State::setInProgress(State::getInProgress()->draw_rectangle(State::getInProgress()->get_corners()));
+					State::getInProgress()->write_image_to_file();
+					State::getInProgress()->open_image_window();
+					break;
+			}
 
 			std::cout << "Megfelel a kiválasztott téglalap?" << std::endl;
 			std::cout << "Válasz (i / n): " << std::endl;
@@ -260,7 +267,7 @@
 				break;
 
 			case 'n':
-				Select_corners::restart();
+				throw std::exception("Választás újraindul!");
 				break;
 
 			default:
@@ -270,14 +277,9 @@
 		///
 	}
 
-	void Select_corners::restart() const
+	State* Select_corners::next_state() const
 	{
-		setState(Select_corners_state);
-	}
-
-	void Select_corners::next_state() const
-	{
-		setState(Transform_state);
+		return new Transform;
 	}
 
 ////
@@ -287,26 +289,12 @@
 
 	void Transform::run() const
 	{
-		Point* corners = new Point[4];
-
-		for (int i = 0; i < 4; i++)
-			corners[i] = State::getInProgress()->get_corners()[i];
-
-		delete State::getInProgress();
-
-		State::setInProgress(State::getBase()->extract_rectangle(corners));
-
-		delete[] corners;
+		State::setInProgress(State::getBase()->extract_rectangle(State::getInProgress()->get_corners()));
 	}
 
-	void Transform::restart() const
+	State* Transform::next_state() const
 	{
-		setState(Transform_state);
-	}
-
-	void Transform::next_state() const
-	{
-		setState(End_state);
+		return new End();
 	}
 
 ////
@@ -316,8 +304,8 @@
 
 	End::~End()
 	{
-		//delete State::getBase();
-		//delete State::getInProgress();
+		delete State::getBase();
+		delete State::getInProgress();
 	}
 
 	void End::run() const
@@ -331,17 +319,22 @@
 		State::getInProgress()->open_image_window();
 	}
 
-	void End::restart() const
+	State* End::next_state() const
 	{
-		setState(End_state);
+		return nullptr;
 	}
 
-	void End::next_state() const
-	{
-		setState(Finish_state);
+////
 
-		delete State::getInProgress();
-		delete State::getBase();
+
+//// Prompt next
+
+	void prompt_next()
+	{
+		std::cout << std::endl;
+		std::cout << "Folytatáshoz nyomjon egy billentyût! ...";
+		std::cin.ignore();
+		getchar();
 	}
 
 ////

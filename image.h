@@ -6,9 +6,16 @@
     #include "point.h"
     #include "vector.h"
 
-    #include "gtest_lite.h"
-    #include "memtrace.h"
 
+    /// Image class
+    // @biref This class is responsible for handling the image data and the image manipulation functions
+    // @param fileName The name of the file that contains the image
+    // @param colorChannels The number of color channels in the image
+	// @param imageHeight The height of the image
+	// @param imageWidth The width of the image
+	// @param imageData The data of the image
+	// @param my_image A flag that indicates if the image is created by the program
+	// @param corners The corners of the image
     class Image
     {
         std::string fileName;
@@ -18,6 +25,7 @@
         int imageWidth;
 
         unsigned char* imageData;
+        bool my_image;
 
         Point corners[4];
 

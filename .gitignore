@@ -30,3 +30,8 @@
 *.exe
 *.out
 *.app
+/.vs
+/x64/Debug
+/Debug
+/Image_tr.dc2fae19/x64/Debug
+/Munka.xlsx

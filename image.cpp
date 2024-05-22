@@ -12,24 +12,34 @@
 #include "image.h"
 #include "point.h"
 
-Image::Image()
+#define MEMTRACE
+#include "memtrace.h"
+
+
+Image::Image() : imageData(nullptr), my_image(true), imageHeight(0), imageWidth(0), colorChannels(0), fileName("")
 {
-    imageData = nullptr;
-    imageHeight = 0;
-    imageWidth = 0;
-    colorChannels = 0;
-    fileName = "";
+    for (int i = 0; i < 4; i++)
+        corners[i] = Point(0, 0);
 }
 
 Image::Image(std::string const& file_name)
 {
     fileName = file_name;
     imageData = stbi_load(fileName.c_str(), &imageWidth, &imageHeight, &colorChannels, 0);
+
+    if (imageData == nullptr || imageHeight > 100000 || imageWidth > 100000)
+        throw std::exception("Nincs ilyen kép!");
+
+    my_image = false;
+
+    for (int i = 0; i < 4; i++)
+        corners[i] = Point(0, 0);
 };
 
 Image::~Image()
 {
-    delete[] imageData;
+    if ( my_image )
+		delete[] imageData;
 }
 
 std::string const& Image::get_file_name() const
@@ -68,6 +78,9 @@ void Image::operator=(Image const& other)
 
     imageData = new unsigned char[imageHeight * imageWidth * colorChannels];
 
+    for (int i = 0; i < 4; i++)
+        corners[i] = other.corners[i];
+
     for (size_t i = 0; i < (size_t)imageHeight * imageWidth * colorChannels; i++)
         imageData[i] = other.imageData[i];
 
@@ -91,8 +104,8 @@ void Image::check_file_name(std::string const& file_name)
 {
     unsigned dotIndex = file_name.find_first_of('.');
 
-    if (dotIndex == 0)
-        throw std::exception("Wrong file format");
+    if (dotIndex == 0 || dotIndex > file_name.size())
+        throw std::exception("Helytelen file formátum!");
 
     std::string exstention = file_name.substr(dotIndex + 1);
 
@@ -100,7 +113,7 @@ void Image::check_file_name(std::string const& file_name)
         && exstention != "jpeg"
         && exstention != "png"
         && exstention != "bmp")
-        throw std::exception("Wrong file format");
+        throw std::exception("Helytelen file formátum!");
 }
 
 void Image::open_image_window() const
@@ -143,8 +156,8 @@ void Image::print_parameters() const
 
 void Image::in_frame(Point const& p) const
 {
-    if (p.x < 0 || p.x > imageWidth || p.y > imageHeight)
-        throw std::exception("Point out of frame");
+    if (p.x < 0 || p.x > imageHeight || p.y > imageWidth)
+        throw std::exception("A megadott pont nincs rajta a képen!");
 }
 
 void Image::write_image_to_file(std::string const& new_file_name, unsigned quality, bool final_save)
@@ -331,6 +344,8 @@ void Image::yellowCrossAt(Point const& p, unsigned size, unsigned width)
         for (int j = p.y - size; j < p.y + size; j++)
             if (abs(i - p.x) <= width / 2 || abs(j - p.y) <= width / 2)
                 colorPixel(Point(i, j), color);
+
+    delete[] color;
 }
 
 unsigned char Image::interpolateIndex(double x_idx, double y_idx, int colorChannels, int k) const
@@ -355,7 +370,6 @@ unsigned char Image::interpolateIndex(double x_idx, double y_idx, int colorChann
 Image* Image::draw_corners(Point* corners) const
 {
     Image* output = new Image;
-    
     *output = *this;
 
     for (size_t i = 0; i < 4; i++)
@@ -367,7 +381,6 @@ Image* Image::draw_corners(Point* corners) const
 Image* Image::draw_rectangle(Point* corners) const
 {
     Image* output = new Image;
-
     *output = *this;
 
     for (size_t i = 0; i < 4; i++)
@@ -452,9 +465,9 @@ Point* Image::arrange_corners(Point* corners)                  // The the correc
 
 Image* Image::extract_rectangle(Point* corners, unsigned p_image_width, unsigned p_image_height) const
 {
-    Point* arranged_corners = arrange_corners(corners);
+    Point* arranged_corners = arrange_corners( corners );
 
-    Image* new_image = new Image;
+    Image* new_image( new Image );
 
     new_image->fileName = fileName.substr(0, fileName.find_last_of('.'))
         + "_in_progress"
