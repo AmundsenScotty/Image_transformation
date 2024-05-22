@@ -1,5 +1,3 @@
-//// Image transformation project
-
 #include <iostream>
 
 #ifdef _WIN32
@@ -10,7 +8,6 @@
 
 int main()
 {
-    /// Setting the format fot the output
     #ifdef _WIN32
         SetConsoleOutputCP(1250);
     #endif

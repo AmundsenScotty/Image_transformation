@@ -2,11 +2,11 @@
 #include <stdexcept>
 
 #ifndef STB_IMPLEMENTATION
-    #define STB_IMPLEMENTATION
-    #define STB_IMAGE_IMPLEMENTATION
-    #include "stb_image.h"
-    #define STB_IMAGE_WRITE_IMPLEMENTATION
-    #include "stb_image_write.h"
+#define STB_IMPLEMENTATION
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 #endif
 
 #include "image.h"
@@ -15,13 +15,15 @@
 #define MEMTRACE
 #include "memtrace.h"
 
-
+/// Default constructor for the Image class.
 Image::Image() : imageData(nullptr), my_image(true), imageHeight(0), imageWidth(0), colorChannels(0), fileName("")
 {
     for (int i = 0; i < 4; i++)
         corners[i] = Point(0, 0);
 }
 
+/// Constructor that loads an image from a file.
+/// @param file_name The name of the file to load the image from.
 Image::Image(std::string const& file_name)
 {
     fileName = file_name;
@@ -34,38 +36,47 @@ Image::Image(std::string const& file_name)
 
     for (int i = 0; i < 4; i++)
         corners[i] = Point(0, 0);
-};
+}
 
+/// Destructor for the Image class.
 Image::~Image()
 {
-    if ( my_image )
-		delete[] imageData;
+    if (my_image)
+        delete[] imageData;
 }
 
+/// Gets the file name of the image.
+/// @return The file name as a constant reference.
 std::string const& Image::get_file_name() const
 {
-	return fileName;
+    return fileName;
 }
 
+/// Sets the file name of the image.
+/// @param new_file_name The new file name to set.
 void Image::set_file_name(std::string const& new_file_name)
 {
-	try
-	{
-		Image::check_file_name(new_file_name);
-	}
-	catch (std::exception const& err)
-	{
-		std::cout << "Hiba: " << err.what() << std::endl;
-	}
+    try
+    {
+        Image::check_file_name(new_file_name);
+    }
+    catch (std::exception const& err)
+    {
+        std::cout << "Hiba: " << err.what() << std::endl;
+    }
 
-	fileName = new_file_name;
+    fileName = new_file_name;
 }
 
+/// Copy constructor for the Image class.
+/// @param other The Image object to copy from.
 Image::Image(Image const& other)
 {
     *this = other;
 }
 
+/// Assignment operator for the Image class.
+/// @param other The Image object to assign from.
 void Image::operator=(Image const& other)
 {
     fileName = other.fileName.substr(0, other.fileName.find_last_of('.'))
@@ -87,11 +98,16 @@ void Image::operator=(Image const& other)
     this->write_image_to_file("...", 100, false);
 }
 
+/// Gets the corners of the image.
+/// @return A pointer to the array of corners.
 Point* Image::get_corners()
 {
-	return corners;
+    return corners;
 }
 
+/// Sets a corner of the image.
+/// @param idx The index of the corner to set.
+/// @param corner The Point object representing the new corner.
 void Image::set_corner(unsigned idx, Point const& corner)
 {
     if (idx < 4)
@@ -100,6 +116,8 @@ void Image::set_corner(unsigned idx, Point const& corner)
         throw std::exception("Index out of range");
 }
 
+/// Checks if the file name is valid.
+/// @param file_name The file name to check.
 void Image::check_file_name(std::string const& file_name)
 {
     unsigned dotIndex = file_name.find_first_of('.');
@@ -116,21 +134,26 @@ void Image::check_file_name(std::string const& file_name)
         throw std::exception("Helytelen file formátum!");
 }
 
+/// Opens the image in a window.
 void Image::open_image_window() const
 {
     system(fileName.c_str());
 }
 
+/// Opens the image in a window using a specified file name.
+/// @param file_name The name of the file to open.
 void Image::open_image_window(std::string const& file_name)
 {
     system(file_name.c_str());
 }
 
+/// Closes the image window.
 void Image::close_image_window()
 {
     system("TASKKILL /F /IM PhotosApp.exe");
 }
 
+/// Prints the parameters of the image.
 void Image::print_parameters() const
 {
     std::cout << "Név: " << fileName << std::endl;
@@ -148,18 +171,24 @@ void Image::print_parameters() const
     case 4:
         std::cout << "színes mélységgel";
     default:
-        std::cout << "unkown";
+        std::cout << "unknown";
         break;
     }
     std::cout << std::endl;
 }
 
+/// Checks if a point is within the frame of the image.
+/// @param p The Point object to check.
 void Image::in_frame(Point const& p) const
 {
     if (p.x < 0 || p.x > imageHeight || p.y > imageWidth)
         throw std::exception("A megadott pont nincs rajta a képen!");
 }
 
+/// Writes the image to a file.
+/// @param new_file_name The name of the new file.
+/// @param quality The quality of the saved image.
+/// @param final_save Boolean indicating if this is the final save.
 void Image::write_image_to_file(std::string const& new_file_name, unsigned quality, bool final_save)
 {
     std::string output_name;
@@ -168,11 +197,11 @@ void Image::write_image_to_file(std::string const& new_file_name, unsigned quali
         if (final_save)
         {
             if (fileName.find("_in_progress") == std::string::npos)
-				output_name = fileName.substr(0, fileName.find_last_of('.'))
-				+ "_changed"
-				+ fileName.substr(fileName.find_last_of('.'));
+                output_name = fileName.substr(0, fileName.find_last_of('.'))
+                + "_changed"
+                + fileName.substr(fileName.find_last_of('.'));
 
-			else
+            else
                 output_name = fileName.substr(0, fileName.find("_in_progress"))
                 + "_changed"
                 + fileName.substr(fileName.find("_in_progress") + sizeof("_in_progress") - 1);
@@ -201,6 +230,9 @@ void Image::write_image_to_file(std::string const& new_file_name, unsigned quali
     stbi_write_jpg(output_name.c_str(), imageWidth, imageHeight, colorChannels, imageData, quality);
 }
 
+/// Gets the pixel data at a specific point.
+/// @param p The Point object representing the pixel.
+/// @return A pointer to the pixel data.
 unsigned char* Image::indexPixel(Point const& p)
 {
     if (p.x > imageHeight || p.y > imageWidth)
@@ -209,6 +241,10 @@ unsigned char* Image::indexPixel(Point const& p)
     return &imageData[(p.x * imageWidth + p.y) * colorChannels];
 }
 
+/// Gets the pixel data at specific coordinates.
+/// @param px The x-coordinate of the pixel.
+/// @param py The y-coordinate of the pixel.
+/// @return A pointer to the pixel data.
 unsigned char* Image::indexPixel(int px, int py)
 {
     if (px > imageHeight || py > imageWidth)
@@ -217,6 +253,11 @@ unsigned char* Image::indexPixel(int px, int py)
     return &imageData[(px * imageWidth + py) * colorChannels];
 }
 
+/// @brief Reads a pixel value from the image.
+/// @param px The x-coordinate of the pixel.
+/// @param py The y-coordinate of the pixel.
+/// @return unsigned char const* Pointer to the pixel value.
+/// @throws Throws an exception if the coordinates are out of bounds.
 unsigned char const* Image::readPixel(int px, int py) const
 {
     if (px > imageHeight || py > imageWidth)
@@ -225,12 +266,18 @@ unsigned char const* Image::readPixel(int px, int py) const
     return &imageData[(px * imageWidth + py) * colorChannels];
 }
 
+/// @brief Colors a pixel at a specific point with the given color.
+/// @param p The point where the pixel is located.
+/// @param color The color to apply to the pixel.
 void Image::colorPixel(Point const& p, unsigned char* color)
 {
     for (int i = 0; i < colorChannels; i++)
         indexPixel(p)[i] = color[i];
 }
 
+/// @brief Draws a yellow dot at a specific point with a given radius.
+/// @param p The center point of the dot.
+/// @param radius The radius of the dot.
 void Image::yellowDotAt(Point const& p, unsigned radius)
 {
     unsigned char* color = new unsigned char[colorChannels];
@@ -250,6 +297,11 @@ void Image::yellowDotAt(Point const& p, unsigned radius)
     delete[] color;
 }
 
+/// @brief Draws a line at a specific starting point with given length, width, and direction.
+/// @param start The starting point of the line.
+/// @param length The length of the line.
+/// @param width The width of the line.
+/// @param dir The direction of the line, true for horizontal and false for vertical.
 void Image::lineAt(Point const& start, int length, int width, bool dir)
 {
     for (int i = 0; i < width; i++)
@@ -260,21 +312,31 @@ void Image::lineAt(Point const& start, int length, int width, bool dir)
                 yellowDotAt(Point(start.x + i, start.y + j));
 }
 
+/// @brief Checks if a vector is around a point within a small epsilon range.
+/// @param rhs The vector to compare.
+/// @param lhs The point to compare.
+/// @return True if the vector is around the point, otherwise false.
 static bool around(Vector const& rhs, Point const& lhs)
 {
-    double epsilon = 1;
+    double epsilon = 0.01;
 
-    if (abs(rhs.x - lhs.x) <= 0.01 && abs(rhs.y - lhs.y) <= 0.01)
+    if (abs(rhs.x - lhs.x) <= epsilon && abs(rhs.y - lhs.y) <= epsilon)
         return true;
     else
         return false;
 }
 
+/// @brief Returns the sign of a double value.
+/// @param d The double value.
+/// @return 1 if the value is non-negative, otherwise -1.
 static double sign(double d)
 {
     return d >= 0 ? 1 : -1;
 }
 
+/// @brief Draws a line from one point to another.
+/// @param from The starting point of the line.
+/// @param to The ending point of the line.
 void Image::draw_line(Point const& from, Point const& to)
 {
     Vector step(0, 0);
@@ -307,7 +369,7 @@ void Image::draw_line(Point const& from, Point const& to)
             }
         }
     }
-    
+
     Vector index(from.x, from.y);
     for (; !around(index, to); index.x += step.x, index.y += step.y)
     {
@@ -320,6 +382,9 @@ void Image::draw_line(Point const& from, Point const& to)
     }
 }
 
+/// @brief Creates a grid on the image with specified spacing and width.
+/// @param spacing The spacing between grid lines.
+/// @param width The width of the grid lines.
 void Image::createGrid(int spacing, int width)
 {
     for (int i = spacing; i < imageHeight - width; i += spacing)
@@ -329,6 +394,10 @@ void Image::createGrid(int spacing, int width)
         lineAt(Point(0, i), imageHeight, width, true);
 }
 
+/// @brief Draws a yellow cross at a specific point with given size and width.
+/// @param p The center point of the cross.
+/// @param size The size of the cross.
+/// @param width The width of the cross.
 void Image::yellowCrossAt(Point const& p, unsigned size, unsigned width)
 {
     unsigned char* color = new unsigned char[colorChannels];
@@ -348,6 +417,12 @@ void Image::yellowCrossAt(Point const& p, unsigned size, unsigned width)
     delete[] color;
 }
 
+/// @brief Interpolates the color index of a pixel.
+/// @param x_idx The x index of the pixel.
+/// @param y_idx The y index of the pixel.
+/// @param colorChannels The number of color channels.
+/// @param k The specific color channel to interpolate.
+/// @return The interpolated color value.
 unsigned char Image::interpolateIndex(double x_idx, double y_idx, int colorChannels, int k) const
 {
     double x_left_ratio = x_idx - (int)x_idx;
@@ -367,6 +442,9 @@ unsigned char Image::interpolateIndex(double x_idx, double y_idx, int colorChann
     return c;
 }
 
+/// @brief Draws yellow crosses at the corners of an image.
+/// @param corners The points representing the corners.
+/// @return A new image with yellow crosses drawn at the corners.
 Image* Image::draw_corners(Point* corners) const
 {
     Image* output = new Image;
@@ -378,6 +456,9 @@ Image* Image::draw_corners(Point* corners) const
     return output;
 }
 
+/// @brief Draws a rectangle by connecting the given corners with lines.
+/// @param corners The points representing the corners of the rectangle.
+/// @return A new image with the rectangle drawn.
 Image* Image::draw_rectangle(Point* corners) const
 {
     Image* output = new Image;
@@ -389,7 +470,10 @@ Image* Image::draw_rectangle(Point* corners) const
     return output;
 }
 
-Point* Image::arrange_corners(Point* corners)                  // The the correct order is: bot right, top right, top left, bot left
+/// @brief Arranges the corners of a rectangle in a specific order.
+/// @param corners The points representing the corners of the rectangle.
+/// @return A new array of points representing the arranged corners.
+Point* Image::arrange_corners(Point* corners)
 {
     Point* out = new Point[4];
 
@@ -398,7 +482,9 @@ Point* Image::arrange_corners(Point* corners)                  // The the correc
     for (int i = 0; i < 4; i++)
     {
         xy_sum = corners[i].x + corners[i].y;
-        if (xy_sum > max_xy)
+        if (xy_sum
+
+    > max_xy)
         {
             max_xy = xy_sum;
             max_idx = i;
@@ -459,15 +545,20 @@ Point* Image::arrange_corners(Point* corners)                  // The the correc
         out[1] = corners[other_two[0]];
         out[3] = corners[other_two[1]];
     }
-    
+
     return out;
 }
 
+/// @brief Extracts a rectangle from the image defined by the given corners.
+/// @param corners The points representing the corners of the rectangle.
+/// @param p_image_width The width of the extracted rectangle.
+/// @param p_image_height The height of the extracted rectangle.
+/// @return A new image containing the extracted rectangle.
 Image* Image::extract_rectangle(Point* corners, unsigned p_image_width, unsigned p_image_height) const
 {
-    Point* arranged_corners = arrange_corners( corners );
+    Point* arranged_corners = arrange_corners(corners);
 
-    Image* new_image( new Image );
+    Image* new_image(new Image);
 
     new_image->fileName = fileName.substr(0, fileName.find_last_of('.'))
         + "_in_progress"
@@ -499,7 +590,7 @@ Image* Image::extract_rectangle(Point* corners, unsigned p_image_width, unsigned
             n[1] = (1 - u) * (1 + v) / 4.0;
             n[2] = (1 - u) * (1 - v) / 4.0;
             n[3] = (1 + u) * (1 - v) / 4.0;
-            
+
             double x_idx = 0;
             double y_idx = 0;
 
@@ -522,7 +613,7 @@ Image* Image::extract_rectangle(Point* corners, unsigned p_image_width, unsigned
             for (int k = 0; k < colorChannels; k++)
                 new_image->indexPixel(i, j)[k] = interpolateIndex(x_idx, y_idx, colorChannels, k);
         }
-    
+
     delete[] arranged_corners;
 
     return new_image;
